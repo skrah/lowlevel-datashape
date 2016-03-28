@@ -26,7 +26,7 @@ sudo apt-get install ocaml-nox
 
 git clone https://github.com/skrah/lowlevel-datashape.git
 
-cd ocaml-datashape++
+cd lowlevel-datashape
 make
 
 
