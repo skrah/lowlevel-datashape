@@ -24,7 +24,7 @@ Build (Debian/Ubuntu example)
 
 sudo apt-get install ocaml-nox
 
-git clone https://github.com/skrah/ocaml-datashape++
+git clone https://github.com/skrah/lowlevel-datashape.git
 
 cd ocaml-datashape++
 make
