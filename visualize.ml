@@ -72,13 +72,13 @@ let rec datashape d ch t =
   | Tuple (flag, lst) ->
      let lst' = match flag with
                   Nonvariadic -> lst
-                | Variadic -> lst @ [Typevar "..."] (* Abuse Typevar for printing *)
+                | Variadic -> lst @ [Dtypevar "..."] (* Abuse Dtypevar for printing *)
      in fprintf ch "(%a)" (datashape_list d) lst'
 
   | Record (flag, lst) ->
      let lst' = match flag with
                   Nonvariadic -> lst
-                | Variadic -> lst @ [("", Typevar "...")] (* Abuse Typevar for printing *)
+                | Variadic -> lst @ [("", Dtypevar "...")] (* Abuse Dtypevar for printing *)
      in fprintf ch "{\n%a%a\n%a}"
           (indent (d+2)) ()
           (field_declaration_list (d+2)) lst'
@@ -94,7 +94,7 @@ let rec datashape d ch t =
 
   | Function _ -> raise (InternalError "unexpected function")
 
-  | Typevar s -> fprintf ch "%s" s
+  | Dtypevar s -> fprintf ch "%s" s
 
   | Pointer t -> fprintf ch "pointer[%a]" (datashape d) t
   | Option t -> fprintf ch "?%a" (datashape d) t
@@ -102,20 +102,24 @@ let rec datashape d ch t =
   | CudaHost t -> fprintf ch "cuda_host[%a]" (datashape d) t
   | CudaDevice t -> fprintf ch "cuda_host[%a]" (datashape d) t
 
-  (* type kinds *)
-  | Any -> fprintf ch "Any"
-  | Scalar -> fprintf ch "Scalar"
-  | Categorical -> fprintf ch "Categorical"
+  (* dtype kinds *)
+  | ScalarKind -> fprintf ch "Scalar"
+  | CategoricalKind -> fprintf ch "Categorical"
   | FixedBytesKind -> fprintf ch "FixedBytes"
   | FixedStringKind -> fprintf ch "FixedString"
 
   (* general type constructor *)
   | Constr (sym, t) -> fprintf ch "%s[%a]" sym (datashape d) t
 
+  (* arrays *)
   | FixedDim (size, t) -> fprintf ch "%d * %a" size (datashape d) t
+  | FixedDimKind t -> fprintf ch "Fixed * %a" (datashape d) t
   | VarDim t -> fprintf ch "var * %a" (datashape d) t
   | SymbolicDim (sym, t) -> fprintf ch "%s * %a" sym (datashape d) t
   | EllipsisDim (sym, t) -> fprintf ch "%s... * %a" sym (datashape d) t
+
+  (* type kinds *)
+  | AnyKind -> fprintf ch "Any"
 
 and datashape_list d ch lst = list_single_comma d ch datashape lst
 and field_declaration_list d ch lst = list_multi_comma d ch field_declaration lst

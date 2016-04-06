@@ -44,6 +44,7 @@ module A = Ast
 %token CATEGORICAL_KIND
 %token FIXED_BYTES_KIND
 %token FIXED_STRING_KIND
+%token FIXED_DIM_KIND
 
 /* punctuation */
 %token COMMA
@@ -79,6 +80,7 @@ module A = Ast
 input:
   datashape EOF { $1 }
 
+/* types */
 datashape:
   datashape_nooption                      { $1 }
 | QUESTIONMARK datashape_nooption         { A.Option($2) }
@@ -88,6 +90,7 @@ datashape_nooption:
   /* dimension types */
   INTEGER STAR datashape                     { A.FixedDim($1, $3) }
 | FIXED LBRACK INTEGER RBRACK STAR datashape { A.FixedDim($3, $6) }
+| FIXED_DIM_KIND STAR datashape              { A.FixedDimKind($3) }
 | VAR STAR datashape                         { A.VarDim($3) }
 | NAME_UPPER STAR datashape                  { A.SymbolicDim($1, $3) }
 | ELLIPSIS STAR datashape                    { A.EllipsisDim("", $3) }
@@ -98,10 +101,14 @@ datashape_nooption:
 | VAR DOUBLESTAR INTEGER STAR datashape        { A.mk_var_power_dim ~exponent:$3 ~datashape:$5 }
 | NAME_UPPER DOUBLESTAR INTEGER STAR datashape { A.mk_symbolic_power_dim ~symbol:$1 ~exponent:$3 ~datashape:$5 }
 
+| ANY_KIND { A.AnyKind }
+
 | dtype { $1 }
 
 dtype:
-  /* machine independent types */
+  /***** Scalars *****/
+
+  /*** fixed-size ***/
   VOID { A.Void }
 | BOOL { A.Bool }
 
@@ -117,40 +124,44 @@ dtype:
 | UINT64 { A.Uint64 }
 | UINT128 { A.Uint128 }
 
+  /* binary floating point (IEEE 754-2008) */
 | FLOAT16 { A.Float16 }
 | FLOAT32 { A.Float32 }
 | FLOAT64 { A.Float64 }
 | FLOAT128 { A.Float128 }
 
-  /* unicode character (utf32) */
-| CHAR { A.Char(A.Utf32) }
+  /* complex numbers (IEEE 754-2008) */
+| COMPLEX64 { A.Complex(A.Float32) }
+| COMPLEX128 { A.Complex(A.Float64) }
 
-  /* unicode string (utf8) */
-| STRING { A.String }
+  /*** aliases ***/
+  /* machine independent */
+| INT { A.Int32 }
+| REAL { A.Float64 }
+| COMPLEX { A.Complex(A.Float64) }
 
-  /* complex numbers (machine dependent) */
-| COMPLEX64 { A.Complex(A.translate_alias "float") }
-| COMPLEX128 { A.Complex(A.translate_alias "double") }
-
-  /* machine dependent aliases */
+  /*** machine dependent ***/
 | INTPTR { A.translate_alias "intptr_t" }
 | UINTPTR { A.translate_alias "uintptr_t" }
 | SIZE { A.translate_alias "size_t" }
-| REAL { A.translate_alias "double" }
-| COMPLEX { A.Complex(A.translate_alias "double") }
 
-  /* machine independent aliases */
-| INT { A.translate_alias "int" }
-
+  /*** complex constructor (scalars internally) ***/
   /* complex[float32] */
 | COMPLEX LBRACK FLOAT32 RBRACK { A.Complex(A.Float32) }
   /* complex[float64] */
 | COMPLEX LBRACK FLOAT64 RBRACK { A.Complex(A.Float64) }
   /* complex[real] */
-| COMPLEX LBRACK REAL RBRACK { A.Complex(A.translate_alias "double") }
+| COMPLEX LBRACK REAL RBRACK { A.Complex(A.Float64) }
 
+  /***** Chars, strings, bytes *****/
   /* char[encoding] */
 | CHAR LBRACK STRINGLIT RBRACK { A.Char(A.encoding_of_string $3) }
+
+  /* alias: unicode character (utf32) */
+| CHAR { A.Char(A.Utf32) }
+
+  /* unicode string (utf8) */
+| STRING { A.String }
 
   /* fixed_string[size] */
 | FIXED_STRING LBRACK INTEGER RBRACK { A.FixedString($3, None) }
@@ -172,15 +183,15 @@ dtype:
   /* cuda_device[datashape] */
 | CUDA_DEVICE LBRACK datashape RBRACK { A.CudaDevice($3) }
 
- /* type variable */
-| NAME_UPPER { A.Typevar $1 }
+ /* dtype variable */
+| NAME_UPPER { A.Dtypevar $1 }
 
- /* type kinds */
-| ANY_KIND { A.Any } 
-| SCALAR_KIND { A.Scalar }
-| CATEGORICAL_KIND { A.Categorical }
+ /* dtype kinds */
+| SCALAR_KIND { A.ScalarKind }
+| CATEGORICAL_KIND { A.CategoricalKind }
 | FIXED_BYTES_KIND { A.FixedBytesKind }
 | FIXED_STRING_KIND { A.FixedStringKind }
+
 | NAME_UPPER LBRACK datashape RBRACK { A.Constr ($1, $3) }
 
 | tuple_type    { $1 }
@@ -275,6 +286,7 @@ keyword:
 | CATEGORICAL_KIND { "Categorical" }
 | FIXED_BYTES_KIND { "FixedBytes" }
 | FIXED_STRING_KIND { "FixedString" }
+| FIXED_DIM_KIND { "Fixed" }
 
 
 

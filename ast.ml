@@ -41,7 +41,7 @@ type datashape =
   | Float64
   | Float128
 
-  | Complex of datashape (* argument restricted to floats *)
+  | Complex of datashape (* argument restricted to IEEE 754-2008 floats *)
 
   | Char of encoding
 
@@ -60,12 +60,11 @@ type datashape =
   | Constr of string * datashape (* general type constructor *)
 
   (* symbolic dtypes *)
-  | Typevar of string
+  | Dtypevar of string
 
-  (* type kinds (denoting specific subsets of types) *)
-  | Any
-  | Scalar
-  | Categorical
+  (* dtype kinds (subsets of dtypes) *)
+  | ScalarKind
+  | CategoricalKind
   | FixedBytesKind
   | FixedStringKind
 
@@ -80,6 +79,12 @@ type datashape =
   | SymbolicDim of string * datashape (* equivalent to "array[N] of type" *)
   | EllipsisDim of string * datashape (* any number of dimensions (... or Dim...) *)
 
+  (* dimension kinds *)
+  | FixedDimKind of datashape         (* set of all array[N] of type *)
+
+  (* type kinds *)
+  | AnyKind                           (* set of all types *)
+
 and field = (string * datashape)
 
 and parameters =
@@ -93,11 +98,6 @@ let translate_alias = function
     "size" -> Uint64
   | "intptr" -> Int64
   | "uintptr" -> Uint64
-  (* machine dependent, used for constructing complex64 and complex128 *)
-  | "float" -> Float32
-  | "double" -> Float64
-  (* machine independent (per datashape definition) *)
-  | "int" -> Int32
   | s -> parse_error("invalid type alias: " ^ s)
 
 let encoding_of_string s =
@@ -142,14 +142,14 @@ let mk_symbolic_power_dim ~symbol ~exponent ~datashape =
 
 let mk_bytes = function
     1 | 2 | 4 | 8 | 16 as align -> Bytes align
-  | _ -> parse_error("alignment must be a power of 2 in [1, 16]")
+  | _ -> parse_error("target alignment must be a power of 2 in [1, 16]")
 
 let mk_fixed_bytes ~size ~align =
   match align with
     1 | 2 | 4 | 8 | 16 ->
      if size >= align && size mod align = 0 then FixedBytes (size, align)
      else parse_error("size must be divisible by align")
-  | _ -> parse_error("alignment must be a power of 2 in [1, 16]")
+  | _ -> parse_error("data alignment must be a power of 2 in [1, 16]")
 
 let mk_function ~pos ~kwds ~ret =
   Function { fun_ret = ret; fun_pos = pos; fun_kwds = kwds }

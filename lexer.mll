@@ -50,7 +50,8 @@ let keywords = create_hashtable 32 [
   "Scalar", P.SCALAR_KIND;
   "Categorical", P.CATEGORICAL_KIND;
   "FixedBytes", P.FIXED_BYTES_KIND;
-  "FixedString", P.FIXED_STRING_KIND
+  "FixedString", P.FIXED_STRING_KIND;
+  "Fixed", P.FIXED_DIM_KIND
 ]
 
 }
@@ -82,7 +83,9 @@ rule token = parse
   | name_lower { let s = Lexing.lexeme lexbuf in
                  try Hashtbl.find keywords s
                  with Not_found -> (P.NAME_LOWER s) }
-  | name_upper { let s = Lexing.lexeme lexbuf in (P.NAME_UPPER s) }
+  | name_upper { let s = Lexing.lexeme lexbuf in
+                 try Hashtbl.find keywords s
+                 with Not_found -> (P.NAME_UPPER s) }
   | name_other { let s = Lexing.lexeme lexbuf in (P.NAME_OTHER s) }
   | nat        { let s = Lexing.lexeme lexbuf in (P.INTEGER (int_of_string s)) }
 

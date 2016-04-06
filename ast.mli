@@ -32,10 +32,9 @@ type datashape =
   | CudaHost of datashape
   | CudaDevice of datashape
   | Constr of string * datashape
-  | Typevar of string
-  | Any
-  | Scalar
-  | Categorical
+  | Dtypevar of string
+  | ScalarKind
+  | CategoricalKind
   | FixedBytesKind
   | FixedStringKind
   | Tuple of variadic_flag * datashape list
@@ -45,6 +44,8 @@ type datashape =
   | VarDim of datashape
   | SymbolicDim of string * datashape
   | EllipsisDim of string * datashape
+  | FixedDimKind of datashape
+  | AnyKind
 and field = string * datashape
 and parameters = {
   fun_ret : datashape;
